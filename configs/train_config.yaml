@@ -1,0 +1,86 @@
+# DJNet Training Configuration
+
+# Model Configuration
+model:
+  pretrained_model: "runwayml/stable-diffusion-v1-5"
+  freeze_encoder: false
+  in_channels: 3
+  out_channels: 1
+
+# Data Configuration
+data:
+  data_dir: "path/to/your/dataset"
+  json_files: null  # null means load all JSON files in data_dir
+  sample_rate: 16000
+  n_fft: 1024
+  hop_length: 256
+  n_mels: 128
+  spectrogram_size: [128, 128]
+  normalize: true
+  augment: false
+  cache_spectrograms: true
+  train_split: 0.8
+  val_split: 0.2
+
+# Training Configuration
+training:
+  batch_size: 8
+  val_batch_size: 8
+  num_epochs: 100
+  learning_rate: 1e-4
+  weight_decay: 1e-2
+  min_lr: 1e-6
+  use_scheduler: true
+  
+  # Optimization
+  mixed_precision: true
+  gradient_accumulation_steps: 1
+  max_grad_norm: 1.0
+  
+  # Logging and Saving
+  log_every: 100
+  save_every: 1000
+  validate_every: 500
+  save_dir: "./checkpoints"
+  
+  # Hardware
+  device: "auto"  # auto, cuda, cpu
+  num_workers: 4
+  pin_memory: true
+
+# Diffusion Configuration
+diffusion:
+  num_train_timesteps: 1000
+  beta_start: 0.0001
+  beta_end: 0.02
+  beta_schedule: "linear"  # linear, scaled_linear, squaredcos_cap_v2
+  clip_sample: true
+
+# Loss Configuration
+loss:
+  mse_weight: 1.0
+  perceptual_weight: 0.1
+  temporal_weight: 0.05
+
+# Weights & Biases Configuration
+wandb:
+  project: "djnet-stable-diffusion"
+  run_name: null  # auto-generated if null
+  tags: ["djnet", "diffusion", "audio", "spectrogram"]
+  notes: "Transfer learning from Stable Diffusion for DJ transition generation"
+
+# Inference Configuration
+inference:
+  num_inference_steps: 50
+  guidance_scale: 1.0
+  
+# Resume Configuration
+resume:
+  checkpoint_path: null  # path to checkpoint to resume from
+  
+# Evaluation Configuration
+evaluation:
+  generate_samples: true
+  num_samples: 8
+  save_samples: true
+  sample_inference_steps: 20
