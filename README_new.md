@@ -6,28 +6,13 @@ A clean, production-ready deep learning model for generating smooth transitions 
 
 - **15-second segment processing** with variable transition lengths (0.1-8 seconds)
 - **Production U-Net model** with 50M+ parameters for high-quality transitions
-- **Real audio dataset support** - train with your own music collection
 - **Clean, modular codebase** with refactored architecture
 - **Simple CLI interface** for training and testing
-- **Comprehensive evaluation system** with audio quality metrics
+- **Synthetic dataset generation** for easy training without large audio datasets
 
 ## Quick Start
 
-### Setup Your Dataset
-1. Add your audio files to the `data/` folder:
-```bash
-# Copy your music files
-cp /path/to/your/music/*.{wav,mp3,flac,m4a} data/
-```
-
-2. Supported formats: WAV, MP3, FLAC, M4A
-
-### Training with Real Audio
-```bash
-python train_model.py
-```
-
-### Alternative Training (CLI)
+### Training
 ```bash
 python run.py train
 ```

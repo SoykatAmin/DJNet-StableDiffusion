@@ -11,9 +11,9 @@ from pathlib import Path
 import numpy as np
 from tqdm import tqdm
 
-from ..models.djnet_unet import DJNetUNet
-from ..models.diffusion import DJNetDiffusionPipeline, DJNetLoss
-from ..data.dataset import DJNetTransitionDataset
+from models.djnet_unet import DJNetUNet
+from models.diffusion import DJNetDiffusionPipeline, DJNetLoss
+from data.dataset import DJNetTransitionDataset
 
 
 class DJNetTrainer:
@@ -416,8 +416,8 @@ def create_trainer(
     Returns:
         Configured trainer instance
     """
-    from ..models.djnet_unet import create_djnet_unet
-    from ..data.dataset import create_dataloader
+    from models.djnet_unet import create_djnet_unet
+    from data.dataset import create_dataloader
     
     # Create model
     model = create_djnet_unet(

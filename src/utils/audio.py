@@ -321,6 +321,73 @@ def normalize_loudness(
     return audio * gain
 
 
+class AudioProcessor:
+    """
+    Audio processing utility class for DJNet.
+    Handles audio loading, spectrogram conversion, and preprocessing.
+    """
+    
+    def __init__(
+        self,
+        sample_rate: int = 16000,
+        n_fft: int = 1024,
+        hop_length: int = 256,
+        n_mels: int = 128
+    ):
+        """
+        Initialize AudioProcessor.
+        
+        Args:
+            sample_rate: Target sample rate
+            n_fft: FFT window size
+            hop_length: Hop length for STFT
+            n_mels: Number of mel filter banks
+        """
+        self.sample_rate = sample_rate
+        self.n_fft = n_fft
+        self.hop_length = hop_length
+        self.n_mels = n_mels
+        
+    def load_audio(self, audio_path: str) -> torch.Tensor:
+        """Load audio file and convert to target sample rate."""
+        return load_audio_segment(audio_path, sample_rate=self.sample_rate)
+    
+    def to_spectrogram(
+        self,
+        audio: torch.Tensor,
+        normalize: bool = True,
+        target_size: Optional[Tuple[int, int]] = None
+    ) -> torch.Tensor:
+        """Convert audio to mel spectrogram."""
+        return audio_to_mel_spectrogram(
+            audio,
+            sample_rate=self.sample_rate,
+            n_fft=self.n_fft,
+            hop_length=self.hop_length,
+            n_mels=self.n_mels,
+            normalize=normalize,
+            target_size=target_size
+        )
+    
+    def from_spectrogram(self, spectrogram: torch.Tensor) -> torch.Tensor:
+        """Convert mel spectrogram back to audio."""
+        return spectrogram_to_audio(
+            spectrogram,
+            sample_rate=self.sample_rate,
+            n_fft=self.n_fft,
+            hop_length=self.hop_length
+        )
+    
+    def process_audio_file(
+        self,
+        audio_path: str,
+        target_size: Optional[Tuple[int, int]] = None
+    ) -> torch.Tensor:
+        """Load audio file and convert to spectrogram in one step."""
+        audio = self.load_audio(audio_path)
+        return self.to_spectrogram(audio, target_size=target_size)
+
+
 if __name__ == "__main__":
     # Test audio utilities
     print("Testing audio utilities...")

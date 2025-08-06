@@ -3,7 +3,7 @@ import torch.nn as nn
 from diffusers import DDPMScheduler, DDIMScheduler
 from typing import Optional, Union, Dict, Any
 import numpy as np
-from .djnet_unet import DJNetUNet
+from models.djnet_unet import DJNetUNet
 
 
 class DJNetDiffusionPipeline:
@@ -111,8 +111,12 @@ class DJNetDiffusionPipeline:
             noisy_transition.unsqueeze(1)     # Add channel dim
         ], dim=1)  # Shape: (batch_size, 3, height, width)
         
+        # Create dummy encoder hidden states for cross-attention
+        # Stable Diffusion UNet expects (batch_size, 77, 768) for text embeddings
+        encoder_hidden_states = torch.zeros(batch_size, 77, 768, device=device)
+        
         # Predict the noise
-        model_output = self.unet(model_input, timesteps)
+        model_output = self.unet(model_input, timesteps, encoder_hidden_states=encoder_hidden_states)
         
         # Calculate loss (MSE between predicted and actual noise)
         loss = nn.functional.mse_loss(model_output.sample, noise)
@@ -170,14 +174,22 @@ class DJNetDiffusionPipeline:
                 transition_spec.unsqueeze(1)
             ], dim=1)
             
+            # Create dummy encoder hidden states
+            encoder_hidden_states = torch.zeros(batch_size, 77, 768, device=device)
+            
             # Predict noise
             timestep_tensor = timestep.unsqueeze(0).repeat(batch_size).to(device)
-            noise_pred = self.unet(model_input, timestep_tensor).sample
+            noise_pred = self.unet(model_input, timestep_tensor, encoder_hidden_states=encoder_hidden_states).sample
             
             # Compute the previous noisy sample
-            transition_spec = self.scheduler.step(
+            scheduler_output = self.scheduler.step(
                 noise_pred, timestep, transition_spec
-            ).prev_sample
+            )
+            transition_spec = scheduler_output.prev_sample
+            
+            # Ensure transition_spec maintains correct shape (batch_size, height, width)
+            if transition_spec.dim() > 3:
+                transition_spec = transition_spec.squeeze(1)  # Remove extra channel dimension if added
         
         # Clip samples if requested
         if self.clip_sample:
@@ -312,7 +324,7 @@ class DJNetLoss(nn.Module):
 
 if __name__ == "__main__":
     # Test pipeline creation
-    from .djnet_unet import create_djnet_unet
+    from models.djnet_unet import create_djnet_unet
     
     # Create model and pipeline
     unet = create_djnet_unet()
