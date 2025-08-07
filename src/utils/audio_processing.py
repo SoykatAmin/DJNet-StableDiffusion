@@ -12,13 +12,22 @@ class AudioProcessor:
     """
     
     def __init__(self, sample_rate=22050, n_fft=2048, hop_length=512, n_mels=128, 
-                 spectrogram_size=(128, 512), segment_duration=15.0):
+                 spectrogram_size=(128, 512), segment_duration=12.0):  # Adjusted to ~12s for 512 frames
         self.sample_rate = sample_rate
         self.n_fft = n_fft
         self.hop_length = hop_length
         self.n_mels = n_mels
         self.spectrogram_size = spectrogram_size
         self.segment_duration = segment_duration
+        
+        # Calculate actual duration that will produce target time frames
+        target_time_frames = spectrogram_size[1]
+        self.effective_duration = (target_time_frames * hop_length) / sample_rate
+        
+        print(f"AudioProcessor initialized:")
+        print(f"  Target spectrogram size: {spectrogram_size}")
+        print(f"  Segment duration: {segment_duration}s")
+        print(f"  Effective duration after cropping: {self.effective_duration:.1f}s")
         
         # Initialize transforms
         self.mel_transform = torchaudio.transforms.MelSpectrogram(
@@ -92,16 +101,29 @@ class AudioProcessor:
         # Remove channel dimension
         log_mel_spec = log_mel_spec.squeeze(0)
         
-        # Resize to target size if necessary
-        if log_mel_spec.shape != self.spectrogram_size:
-            log_mel_spec = log_mel_spec.unsqueeze(0).unsqueeze(0)
-            log_mel_spec = torch.nn.functional.interpolate(
-                log_mel_spec,
-                size=self.spectrogram_size,
-                mode='bilinear',
-                align_corners=False
-            )
-            log_mel_spec = log_mel_spec.squeeze(0).squeeze(0)
+        # Crop to target size (prefer cropping over interpolation to preserve audio quality)
+        target_height, target_width = self.spectrogram_size
+        current_height, current_width = log_mel_spec.shape
+        
+        # Crop frequency dimension (mel bins) if needed
+        if current_height > target_height:
+            # Keep lower frequencies (more important for audio)
+            log_mel_spec = log_mel_spec[:target_height, :]
+        elif current_height < target_height:
+            # Pad with silence if needed (shouldn't happen with proper mel settings)
+            padding = torch.full((target_height - current_height, current_width), -10.0)  # Silence in log scale
+            log_mel_spec = torch.cat([log_mel_spec, padding], dim=0)
+        
+        # Crop time dimension if needed (remove end of audio)
+        if current_width > target_width:
+            # Keep the beginning of the audio segment (first 512 frames ≈ 11.9 seconds)
+            log_mel_spec = log_mel_spec[:, :target_width]
+            print(f"   Cropped time dimension from {current_width} to {target_width} frames")
+            print(f"   Effective duration: {target_width * self.hop_length / self.sample_rate:.1f} seconds")
+        elif current_width < target_width:
+            # Pad with silence if needed
+            padding = torch.full((target_height, target_width - current_width), -10.0)  # Silence in log scale
+            log_mel_spec = torch.cat([log_mel_spec, padding], dim=1)
         
         # Normalize to [-1, 1]
         spec_min = log_mel_spec.min()
