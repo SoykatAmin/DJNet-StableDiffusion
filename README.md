@@ -2,13 +2,12 @@
 
 A clean, production-ready deep learning model for generating smooth transitions between electronic music tracks using U-Net architecture.
 
-## ✨ Features
+## Features
 
-- **15-second segment processing** with variable transition lengths (0.1-8 seconds)
-- **Production U-Net model** with 50M+ parameters for high-quality transitions
-- **Clean, modular codebase** with refactored architecture
-- **Simple CLI interface** for training and testing
-- **Synthetic dataset generation** for easy training without large audio datasets
+- **12-second segment processing** with precise spectrogram size control (128×512)
+- **Production U-Net model** with 18M+ parameters for high-quality transitions
+- **Smart audio cropping** to match UNet input requirements without interpolation
+- **Kaggle training integration** with production-ready inference pipeline
 
 ## Quick Start
 
@@ -20,29 +19,49 @@ python run.py train
 ### Testing
 ```bash
 # Test with trained model
-python run.py test --checkpoint checkpoints/best_model.pt
-
-# Test with custom audio files
-python run.py test --checkpoint checkpoints/best_model.pt --source-a track1.wav --source-b track2.wav
+python test_model.py
 ```
 
 ## Project Structure
 
 ```
 ├── src/
-│ ├── models/
-│ │ └── production_unet.py # Main U-Net model
-│ ├── data/
-│ │ └── synthetic_dataset.py # Synthetic training data
-│ └── utils/
-│ └── audio_processing.py # Audio conversion utilities
+│   ├── models/
+│   │   ├── production_unet.py     # Main U-Net model for production
+│   │   ├── djnet_unet.py         # Alternative U-Net implementation  
+│   │   └── diffusion.py          # Diffusion model components
+│   ├── data/
+│   │   └── synthetic_dataset.py   # Synthetic training data generation
+│   ├── training/
+│   │   └── trainer.py             # Training loop and utilities
+│   ├── diffusion/
+│   │   └── pipeline.py            # Diffusion pipeline (experimental)
+│   └── utils/
+│       ├── audio_processing.py    # AudioProcessor class for mel-spectrograms
+│       ├── audio.py              # Legacy audio utilities
+│       ├── evaluation.py         # TransitionEvaluator for quality metrics
+│       └── visualization.py      # Plotting and visualization tools
 ├── configs/
-│ └── long_segment_config.py # Model configuration
-├── checkpoints/ # Saved model checkpoints
-├── outputs/ # Generated transitions
-├── run.py # Main CLI interface
-├── train_model.py # Training script
-└── test_model.py # Testing script
+│   └── long_segment_config.py    # Model configuration parameters
+├── notebooks/
+│   └── dj-transition-training-kaggle.ipynb  # Kaggle training notebook
+├── scripts/
+│   ├── train.py                  # Training script
+│   └── inference.py              # Inference script
+├── checkpoints/                  # Saved model checkpoints
+│   └── 5k/
+│       └── best_model_kaggle.pt  # Best trained model
+├── test/                        # Test audio files directory
+├── outputs/                     # Generated transitions
+├── transition_outputs/          # Additional output directory
+├── data/                       # Training data storage
+├── logs/                       # Training logs
+├── run.py                      # Main CLI interface
+├── train_model.py              # Standalone training script
+├── test_model.py               # Standalone testing script
+├── test.py                     # AudioProcessor testing script
+├── test_reconstruction_analysis.py  # Audio reconstruction quality analysis
+└── quick_test.py               # Quick functionality test
 ```
 
 ## How It Works
@@ -56,11 +75,14 @@ python run.py test --checkpoint checkpoints/best_model.pt --source-a track1.wav 
 
 Key parameters in `configs/long_segment_config.py`:
 
-- `SEGMENT_DURATION = 15.0` - Length of audio segments
-- `SPECTROGRAM_HEIGHT = 128` - Frequency bins
-- `SPECTROGRAM_WIDTH = 512` - Time frames
+- `SEGMENT_DURATION = 12.0` - Length of audio segments (adjusted for UNet input size)
+- `SPECTROGRAM_HEIGHT = 128` - Mel frequency bins  
+- `SPECTROGRAM_WIDTH = 512` - Time frames (≈11.9 seconds effective duration)
 - `MODEL_DIM = 512` - Model capacity
 - `SAMPLE_RATE = 22050` - Audio sample rate
+- `N_FFT = 2048` - FFT window size
+- `HOP_LENGTH = 512` - STFT hop length
+- `N_MELS = 128` - Number of mel frequency bins
 
 ## Model Architecture
 

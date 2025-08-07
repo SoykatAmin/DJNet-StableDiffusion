@@ -293,7 +293,7 @@ def main():
     print("=" * 50)
 
     # Find best checkpoint
-    checkpoint_path = "checkpoints/200/best_model_kaggle.pt"
+    checkpoint_path = "checkpoints/5k/best_model_kaggle.pt"
 
     if not os.path.exists(checkpoint_path):
         print(" Best model checkpoint not found!")
