@@ -10,6 +10,14 @@ from pathlib import Path
 import soundfile as sf
 from skimage.metrics import structural_similarity as ssim
 
+# Import FAD evaluator with fallback
+try:
+    from .fad_evaluation import FADEvaluator
+    FAD_AVAILABLE = True
+except ImportError:
+    print("FAD evaluation not available. Install requirements_fad.txt for full evaluation.")
+    FAD_AVAILABLE = False
+
 class TransitionEvaluator:
     """
     Comprehensive evaluation of transition quality
@@ -49,6 +57,16 @@ class TransitionEvaluator:
 
         print(" Creating evaluation visualizations...")
         self._create_evaluation_plots(source_a_audio, transition_audio, source_b_audio, metrics, output_path)
+
+        # Add FAD evaluation if available
+        if FAD_AVAILABLE:
+            print(" Calculating Fréchet Audio Distance...")
+            try:
+                fad_metrics = self._calculate_fad_metrics(source_a_audio, transition_audio, source_b_audio, output_path)
+                metrics.update(fad_metrics)
+            except Exception as e:
+                print(f"FAD calculation failed: {e}")
+                metrics['fad_error'] = str(e)
 
         self._generate_report(metrics, output_path)
 
@@ -402,6 +420,13 @@ class TransitionEvaluator:
             f.write(f" Tempo Consistency A->T: {metrics.get('tempo_consistency_a_to_t', 0):.1f} BPM diff\n")
             f.write(f" Tempo Consistency T->B: {metrics.get('tempo_consistency_t_to_b', 0):.1f} BPM diff\n\n")
 
+            # FAD Metrics (if available)
+            if 'fad_score' in metrics:
+                f.write("Fréchet Audio Distance:\n")
+                f.write(f" FAD Score: {metrics.get('fad_score', 0):.3f}\n")
+                f.write(f" Interpretation: {metrics.get('fad_interpretation', 'N/A')}\n")
+                f.write(f" vs Crossfade: {metrics.get('fad_vs_crossfade', 0):.3f}\n\n")
+
             # Recommendations
             f.write("RECOMMENDATIONS:\n")
             f.write("-" * 15 + "\n")
@@ -420,11 +445,108 @@ class TransitionEvaluator:
                 f.write("• Low spectral correlation A->T - transition may be too different\n")
             if metrics.get('spectral_correlation_transition_to_b', 0) < 0.3:
                 f.write("• Low spectral correlation T->B - transition may be too different\n")
+            
+            # FAD-based recommendations
+            if 'fad_score' in metrics:
+                fad_score = metrics.get('fad_score', float('inf'))
+                if fad_score > 15:
+                    f.write("• High FAD score - generated transitions differ significantly from real ones\n")
+                elif fad_score > 5:
+                    f.write("• Moderate FAD score - some perceptual differences from real transitions\n")
+                elif fad_score < 1:
+                    f.write("• Excellent FAD score - transitions very similar to real ones\n")
 
-            if overall_score >= 70:
-                f.write("• Transition quality is good! Consider it ready for use.\n")
-            else:
-                f.write("• Consider retraining or adjusting model parameters.\n")
-
-            print(f" Evaluation report saved: {report_path}")
-        return overall_score
+    def _calculate_fad_metrics(self, source_a_audio, transition_audio, source_b_audio, output_path):
+        """
+        Calculate Fréchet Audio Distance metrics for the transition
+        """
+        if not FAD_AVAILABLE:
+            return {}
+        
+        # Create temporary directories for FAD evaluation
+        temp_real_dir = output_path / "temp_real"
+        temp_generated_dir = output_path / "temp_generated" 
+        temp_crossfade_dir = output_path / "temp_crossfade"
+        
+        for temp_dir in [temp_real_dir, temp_generated_dir, temp_crossfade_dir]:
+            temp_dir.mkdir(exist_ok=True)
+        
+        try:
+            # Save audio files for FAD evaluation
+            # Use source files as "real" reference
+            if isinstance(source_a_audio, torch.Tensor):
+                source_a_audio = source_a_audio.detach().cpu().numpy()
+            if isinstance(source_b_audio, torch.Tensor):
+                source_b_audio = source_b_audio.detach().cpu().numpy()
+            if isinstance(transition_audio, torch.Tensor):
+                transition_audio = transition_audio.detach().cpu().numpy()
+            
+            # Save real references (source tracks)
+            sf.write(temp_real_dir / "real_a.wav", source_a_audio, self.sample_rate)
+            sf.write(temp_real_dir / "real_b.wav", source_b_audio, self.sample_rate)
+            
+            # Save generated transition
+            sf.write(temp_generated_dir / "generated_transition.wav", transition_audio, self.sample_rate)
+            
+            # Create simple crossfade baseline for comparison
+            crossfade = self._create_simple_crossfade(source_a_audio, source_b_audio)
+            sf.write(temp_crossfade_dir / "crossfade_transition.wav", crossfade, self.sample_rate)
+            
+            # Initialize FAD evaluator
+            fad_evaluator = FADEvaluator()
+            
+            # Calculate FAD for generated transition
+            fad_results = fad_evaluator.evaluate_transitions(
+                str(temp_real_dir), str(temp_generated_dir)
+            )
+            
+            # Calculate FAD for crossfade baseline
+            crossfade_results = fad_evaluator.evaluate_transitions(
+                str(temp_real_dir), str(temp_crossfade_dir)
+            )
+            
+            # Cleanup temporary files
+            import shutil
+            for temp_dir in [temp_real_dir, temp_generated_dir, temp_crossfade_dir]:
+                shutil.rmtree(temp_dir, ignore_errors=True)
+            
+            return {
+                'fad_score': fad_results['fad_score'],
+                'fad_interpretation': fad_results['interpretation'],
+                'fad_vs_crossfade': fad_results['fad_score'] - crossfade_results['fad_score'],
+                'crossfade_fad': crossfade_results['fad_score']
+            }
+            
+        except Exception as e:
+            # Cleanup on error
+            import shutil
+            for temp_dir in [temp_real_dir, temp_generated_dir, temp_crossfade_dir]:
+                shutil.rmtree(temp_dir, ignore_errors=True)
+            raise e
+    
+    def _create_simple_crossfade(self, audio_a, audio_b):
+        """Create a simple crossfade between two audio signals for FAD baseline"""
+        min_length = min(len(audio_a), len(audio_b))
+        audio_a = audio_a[:min_length]
+        audio_b = audio_b[:min_length]
+        
+        # Create linear crossfade
+        fade_length = min_length // 4  # 25% crossfade region
+        crossfade = np.zeros(min_length)
+        
+        # First part: only A
+        crossfade[:min_length//2 - fade_length//2] = audio_a[:min_length//2 - fade_length//2]
+        
+        # Crossfade region
+        start_fade = min_length//2 - fade_length//2
+        end_fade = min_length//2 + fade_length//2
+        
+        for i in range(fade_length):
+            alpha = i / fade_length
+            idx = start_fade + i
+            crossfade[idx] = (1 - alpha) * audio_a[idx] + alpha * audio_b[idx]
+        
+        # Last part: only B
+        crossfade[end_fade:] = audio_b[end_fade:]
+        
+        return crossfade

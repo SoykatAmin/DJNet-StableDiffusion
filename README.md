@@ -5,9 +5,13 @@ A clean, production-ready deep learning model for generating smooth transitions 
 ## Features
 
 - **12-second segment processing** with precise spectrogram size control (128×512)
-- **Production U-Net model** with 18M+ parameters for high-quality transitions
+- **Production U-Net model** with 50M+ parameters for high-quality transitions
 - **Smart audio cropping** to match UNet input requirements without interpolation
+- **Comprehensive evaluation suite** with SNR, spectral correlation, and **Fréchet Audio Distance (FAD)**
+- **Clean, modular codebase** with refactored AudioProcessor architecture
+- **Multiple testing scripts** for reconstruction quality analysis
 - **Kaggle training integration** with production-ready inference pipeline
+- **Flask web application** with segment selection and in-browser audio playback
 
 ## Quick Start
 
@@ -20,6 +24,12 @@ python run.py train
 ```bash
 # Test with trained model
 python test_model.py
+
+# Run FAD evaluation
+python evaluate_fad.py
+
+# Quick FAD test
+python test_fad.py
 ```
 
 ## Project Structure
@@ -54,7 +64,10 @@ python test_model.py
 ├── test/                        # Test audio files directory
 ├── outputs/                     # Generated transitions
 ├── transition_outputs/          # Additional output directory
-├── data/                       # Training data storage
+├── app/                        # Flask web application
+│   ├── app.py                 # Main Flask server
+│   ├── templates/             # HTML templates
+│   └── static/                # CSS and JS files
 ├── logs/                       # Training logs
 ├── run.py                      # Main CLI interface
 ├── train_model.py              # Standalone training script
@@ -106,6 +119,45 @@ The model generates smooth, musically coherent transitions that:
 - Blend frequency content naturally
 - Create creative transition effects
 - Preserve audio quality
+
+## Evaluation with Fréchet Audio Distance (FAD)
+
+The project includes comprehensive evaluation using **Fréchet Audio Distance (FAD)**, a perceptual audio quality metric that measures the similarity between generated and real audio transitions.
+
+### FAD Evaluation Features
+- **VGGish-based feature extraction** for perceptual audio analysis
+- **Automatic baseline comparison** with simple crossfade transitions
+- **Multiple fallback options** (TensorFlow Hub, PyTorch VGGish, MFCC features)
+- **Batch evaluation** of multiple generated transitions
+- **Comprehensive reporting** with interpretation and recommendations
+
+### Running FAD Evaluation
+
+1. **Install FAD dependencies:**
+```bash
+pip install -r requirements_fad.txt
+```
+
+2. **Quick test:**
+```bash
+python test_fad.py
+```
+
+3. **Full evaluation:**
+```bash
+python evaluate_fad.py --model_path checkpoints/5k/best_model_kaggle.pt --test_dir test --num_samples 50
+```
+
+4. **Custom evaluation:**
+```bash
+python evaluate_fad.py --model_path your_model.pt --test_dir your_audio_files --output_dir fad_results --num_samples 100
+```
+
+### FAD Score Interpretation
+- **< 1.0**: Excellent - Very similar to real transitions
+- **1.0-5.0**: Good - Close to real transition quality  
+- **5.0-15.0**: Fair - Noticeable differences from real transitions
+- **> 15.0**: Poor - Significant differences from real transitions
 
 ## Requirements
 

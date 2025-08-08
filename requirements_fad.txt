@@ -1,0 +1,23 @@
+# FAD Evaluation Requirements
+# Install these packages for Fréchet Audio Distance evaluation
+
+# Core dependencies
+scipy>=1.7.0
+librosa>=0.8.0
+soundfile>=0.10.0
+tqdm>=4.60.0
+
+# VGGish feature extraction options (install one of these):
+
+# Option 1: TensorFlow Hub VGGish (recommended)
+tensorflow>=2.6.0
+tensorflow-hub>=0.12.0
+
+# Option 2: PyTorch VGGish (alternative)
+# torchvggish
+
+# Option 3: If neither works, MFCC features will be used as fallback (already included in librosa)
+
+# Additional utilities
+numpy>=1.20.0
+pathlib2>=2.3.0  # For older Python versions only

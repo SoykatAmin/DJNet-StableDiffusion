@@ -1,0 +1,750 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DJ Transition Generator</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Arial', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: #333;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 40px;
+            color: white;
+        }
+
+        .header h1 {
+            font-size: 3em;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .header p {
+            font-size: 1.2em;
+            opacity: 0.9;
+        }
+
+        .card {
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            margin-bottom: 20px;
+        }
+
+        .status-indicator {
+            display: flex;
+            align-items: center;
+            margin-bottom: 20px;
+            padding: 15px;
+            border-radius: 10px;
+        }
+
+        .status-loaded {
+            background: #d4edda;
+            border: 1px solid #c3e6cb;
+            color: #155724;
+        }
+
+        .status-not-loaded {
+            background: #f8d7da;
+            border: 1px solid #f5c6cb;
+            color: #721c24;
+        }
+
+        .status-icon {
+            margin-right: 10px;
+            font-size: 1.2em;
+        }
+
+        .upload-section {
+            margin-bottom: 30px;
+        }
+
+        .upload-section h3 {
+            margin-bottom: 15px;
+            color: #4a5568;
+        }
+
+        .file-input-group {
+            margin-bottom: 20px;
+        }
+
+        .file-input-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: bold;
+            color: #4a5568;
+        }
+
+        .file-input {
+            width: 100%;
+            padding: 12px;
+            border: 2px dashed #cbd5e0;
+            border-radius: 8px;
+            background: #f7fafc;
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+
+        .file-input:hover {
+            border-color: #667eea;
+            background: #edf2f7;
+        }
+
+        .file-input:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .generate-btn {
+            width: 100%;
+            padding: 15px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 1.1em;
+            font-weight: bold;
+            cursor: pointer;
+            transition: transform 0.2s ease;
+        }
+
+        .generate-btn:hover {
+            transform: translateY(-2px);
+        }
+
+        .generate-btn:disabled {
+            background: #a0aec0;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .loading {
+            display: none;
+            text-align: center;
+            margin: 20px 0;
+        }
+
+        .loading-spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 2s linear infinite;
+            margin: 0 auto 10px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .result {
+            display: none;
+            text-align: center;
+            margin-top: 20px;
+        }
+
+        .download-btn {
+            padding: 12px 30px;
+            background: #48bb78;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 1em;
+            cursor: pointer;
+            text-decoration: none;
+            display: inline-block;
+            margin: 10px 5px;
+            transition: background 0.3s ease;
+        }
+
+        .download-btn:hover {
+            background: #38a169;
+        }
+
+        .cleanup-btn {
+            padding: 8px 20px;
+            background: #f56565;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-size: 0.9em;
+            cursor: pointer;
+            margin-left: 10px;
+        }
+
+        .cleanup-btn:hover {
+            background: #e53e3e;
+        }
+
+        .error {
+            background: #fed7d7;
+            border: 1px solid #feb2b2;
+            color: #c53030;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 15px 0;
+            display: none;
+        }
+
+        .success {
+            background: #c6f6d5;
+            border: 1px solid #9ae6b4;
+            color: #22543d;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 15px 0;
+            display: none;
+        }
+
+        .info-section {
+            margin-top: 30px;
+            padding: 20px;
+            background: #f7fafc;
+            border-radius: 10px;
+        }
+
+        .info-section h4 {
+            margin-bottom: 10px;
+            color: #4a5568;
+        }
+
+        .info-section ul {
+            list-style-type: none;
+            padding-left: 0;
+        }
+
+        .info-section li {
+            margin-bottom: 8px;
+            padding-left: 20px;
+            position: relative;
+        }
+
+        .info-section li:before {
+            content: "•";
+            color: #667eea;
+            font-weight: bold;
+            position: absolute;
+            left: 0;
+        }
+
+        /* Segment Selection Styles */
+        .segment-selection {
+            margin-top: 30px;
+            padding: 25px;
+            background: #f8fafc;
+            border-radius: 10px;
+            border: 2px solid #e2e8f0;
+        }
+
+        .audio-track {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            border: 1px solid #e2e8f0;
+        }
+
+        .audio-track h4 {
+            margin-bottom: 15px;
+            color: #4a5568;
+        }
+
+        .audio-info {
+            background: #edf2f7;
+            padding: 10px;
+            border-radius: 6px;
+            margin-bottom: 15px;
+            font-family: monospace;
+            font-size: 0.9em;
+        }
+
+        .segment-controls {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .segment-controls label {
+            font-weight: bold;
+            color: #4a5568;
+            min-width: 140px;
+        }
+
+        .segment-controls input[type="range"] {
+            flex: 1;
+            min-width: 200px;
+        }
+
+        .segment-controls input[type="number"] {
+            padding: 5px;
+            border: 1px solid #cbd5e0;
+            border-radius: 4px;
+        }
+
+        /* Audio Player Styles */
+        .audio-player {
+            background: #f7fafc;
+            padding: 20px;
+            border-radius: 10px;
+            margin: 20px 0;
+            text-align: center;
+        }
+
+        .audio-player audio {
+            max-width: 100%;
+            height: 40px;
+        }
+
+        .play-button {
+            background: #48bb78;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 6px;
+            cursor: pointer;
+            margin: 10px 5px;
+            font-size: 1em;
+        }
+
+        .play-button:hover {
+            background: #38a169;
+        }
+
+        .play-button:disabled {
+            background: #a0aec0;
+            cursor: not-allowed;
+        }
+
+        @media (max-width: 600px) {
+            .container {
+                padding: 10px;
+            }
+            
+            .header h1 {
+                font-size: 2em;
+            }
+            
+            .card {
+                padding: 20px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>DJ Transition Generator</h1>
+            <p>Upload two songs and generate a smooth transition between them</p>
+        </div>
+
+        <div class="card">
+            <!-- Model Status -->
+            <div class="status-indicator {% if model_status == 'loaded' %}status-loaded{% else %}status-not-loaded{% endif %}">
+                <span class="status-icon">
+                    {% if model_status == 'loaded' %}Loaded{% else %}Not Loaded{% endif %}
+                </span>
+                <span>
+                    {% if model_status == 'loaded' %}
+                        Model loaded and ready to generate transitions
+                    {% else %}
+                        Model not loaded. Please check server configuration.
+                    {% endif %}
+                </span>
+            </div>
+
+            <!-- Upload Form -->
+            <form id="uploadForm" enctype="multipart/form-data">
+                <div class="upload-section">
+                    <h3>Upload Audio Files</h3>
+                    
+                    <div class="file-input-group">
+                        <label for="source_a">Source Track A:</label>
+                        <input type="file" id="source_a" name="source_a" class="file-input" 
+                               accept=".wav,.mp3,.flac,.m4a,.aac" required>
+                    </div>
+                    
+                    <div class="file-input-group">
+                        <label for="source_b">Source Track B:</label>
+                        <input type="file" id="source_b" name="source_b" class="file-input" 
+                               accept=".wav,.mp3,.flac,.m4a,.aac" required>
+                    </div>
+                    
+                    <button type="submit" class="generate-btn" id="uploadBtn" 
+                            {% if model_status != 'loaded' %}disabled{% endif %}>
+                        Upload Files
+                    </button>
+                </div>
+            </form>
+
+            <!-- Segment Selection (hidden initially) -->
+            <div class="segment-selection" id="segmentSelection" style="display: none;">
+                <h3>Choose Audio Segments</h3>
+                
+                <div class="audio-track">
+                    <h4>� Source Track A</h4>
+                    <div class="audio-info" id="audioInfoA"></div>
+                    <div class="segment-controls">
+                        <label for="startTimeA">Start Time (seconds):</label>
+                        <input type="range" id="startTimeA" name="startTimeA" min="0" max="300" value="0" step="1">
+                        <span id="startTimeAValue">0s</span>
+                        <input type="number" id="startTimeAInput" min="0" step="0.1" value="0" style="width: 80px; margin-left: 10px;">
+                    </div>
+                </div>
+                
+                <div class="audio-track">
+                    <h4>Source Track B</h4>
+                    <div class="audio-info" id="audioInfoB"></div>
+                    <div class="segment-controls">
+                        <label for="startTimeB">Start Time (seconds):</label>
+                        <input type="range" id="startTimeB" name="startTimeB" min="0" max="300" value="0" step="1">
+                        <span id="startTimeBValue">0s</span>
+                        <input type="number" id="startTimeBInput" min="0" step="0.1" value="0" style="width: 80px; margin-left: 10px;">
+                    </div>
+                </div>
+                
+                <button type="button" class="generate-btn" id="generateBtn" onclick="generateTransition()">
+                    Generate Transition
+                </button>
+            </div>
+
+            <!-- Loading State -->
+            <div class="loading" id="loading">
+                <div class="loading-spinner"></div>
+                <p>Generating your DJ transition...</p>
+                <p><small>This may take a few moments</small></p>
+            </div>
+
+            <!-- Messages -->
+            <div class="error" id="errorMessage"></div>
+            <div class="success" id="successMessage"></div>
+
+            <!-- Result -->
+            <div class="result" id="result">
+                <h3>🎉 Transition Generated Successfully!</h3>
+                <p>Your DJ transition is ready!</p>
+                
+                <!-- Audio Player -->
+                <div class="audio-player">
+                    <audio id="transitionPlayer" controls style="width: 100%; margin: 20px 0;">
+                        Your browser does not support the audio element.
+                    </audio>
+                </div>
+                
+                <div id="downloadSection"></div>
+            </div>
+        </div>
+
+        <!-- Information Section -->
+        <div class="card info-section">
+            <h4>How it works:</h4>
+            <ul>
+                <li>Upload two audio files (WAV, MP3, FLAC, M4A, AAC)</li>
+                <li>Choose the starting point for each track using the sliders</li>
+                <li>Our AI model analyzes both segments and generates a smooth transition</li>
+                <li>Listen to the transition directly in your browser</li>
+                <li>Download the result and use it in your DJ sets!</li>
+            </ul>
+            
+            <h4 style="margin-top: 20px;">New Features:</h4>
+            <ul>
+                <li>**Segment Selection**: Choose any 12-second segment from your tracks</li>
+                <li>**Instant Playback**: Listen to transitions without downloading</li>
+                <li>**Audio Information**: See track details (duration, format, sample rate)</li>
+                <li>**Real-time Preview**: Adjust segments and regenerate transitions</li>
+            </ul>
+            
+            <h4 style="margin-top: 20px;">📝 Supported formats:</h4>
+            <ul>
+                <li>WAV (recommended for best quality)</li>
+                <li>MP3, FLAC, M4A, AAC</li>
+                <li>Maximum file size: 50MB per file</li>
+                <li>Segment length: 12 seconds (optimized for model)</li>
+            </ul>
+        </div>
+    </div>
+
+    <script>
+        let currentSessionId = null;
+        let audioInfoA = null;
+        let audioInfoB = null;
+
+        // Upload form handler
+        document.getElementById('uploadForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const formData = new FormData(this);
+            const uploadBtn = document.getElementById('uploadBtn');
+            const loading = document.getElementById('loading');
+            const errorMessage = document.getElementById('errorMessage');
+            const successMessage = document.getElementById('successMessage');
+            const segmentSelection = document.getElementById('segmentSelection');
+            const result = document.getElementById('result');
+            
+            // Reset UI
+            errorMessage.style.display = 'none';
+            successMessage.style.display = 'none';
+            result.style.display = 'none';
+            segmentSelection.style.display = 'none';
+            
+            // Show loading
+            uploadBtn.disabled = true;
+            uploadBtn.textContent = '📤 Uploading...';
+            loading.style.display = 'block';
+            
+            try {
+                const response = await fetch('/upload', {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    currentSessionId = data.session_id;
+                    audioInfoA = data.source_a_info;
+                    audioInfoB = data.source_b_info;
+                    
+                    successMessage.textContent = data.message;
+                    successMessage.style.display = 'block';
+                    
+                    // Setup segment selection
+                    setupSegmentSelection();
+                    segmentSelection.style.display = 'block';
+                } else {
+                    errorMessage.textContent = data.error || 'An error occurred';
+                    errorMessage.style.display = 'block';
+                }
+            } catch (error) {
+                errorMessage.textContent = 'Network error: ' + error.message;
+                errorMessage.style.display = 'block';
+            }
+            
+            // Hide loading
+            loading.style.display = 'none';
+            uploadBtn.disabled = false;
+            uploadBtn.textContent = '📤 Upload Files';
+        });
+
+        function setupSegmentSelection() {
+            // Setup audio info display
+            if (audioInfoA) {
+                document.getElementById('audioInfoA').innerHTML = `
+                    Duration: ${audioInfoA.duration.toFixed(1)}s | 
+                    Sample Rate: ${audioInfoA.sample_rate}Hz | 
+                    Channels: ${audioInfoA.channels} | 
+                    Format: ${audioInfoA.format}
+                `;
+                
+                // Set max value for slider
+                const maxA = Math.max(0, audioInfoA.duration - 12); // 12s segment
+                document.getElementById('startTimeA').max = maxA;
+                document.getElementById('startTimeAInput').max = maxA;
+            }
+            
+            if (audioInfoB) {
+                document.getElementById('audioInfoB').innerHTML = `
+                    Duration: ${audioInfoB.duration.toFixed(1)}s | 
+                    Sample Rate: ${audioInfoB.sample_rate}Hz | 
+                    Channels: ${audioInfoB.channels} | 
+                    Format: ${audioInfoB.format}
+                `;
+                
+                // Set max value for slider
+                const maxB = Math.max(0, audioInfoB.duration - 12); // 12s segment
+                document.getElementById('startTimeB').max = maxB;
+                document.getElementById('startTimeBInput').max = maxB;
+            }
+            
+            // Setup slider synchronization
+            setupSliderSync('startTimeA', 'startTimeAInput', 'startTimeAValue');
+            setupSliderSync('startTimeB', 'startTimeBInput', 'startTimeBValue');
+        }
+
+        function setupSliderSync(sliderId, inputId, valueId) {
+            const slider = document.getElementById(sliderId);
+            const input = document.getElementById(inputId);
+            const valueSpan = document.getElementById(valueId);
+            
+            // Sync slider to input
+            slider.addEventListener('input', function() {
+                input.value = this.value;
+                valueSpan.textContent = this.value + 's';
+            });
+            
+            // Sync input to slider
+            input.addEventListener('input', function() {
+                slider.value = this.value;
+                valueSpan.textContent = this.value + 's';
+            });
+        }
+
+        async function generateTransition() {
+            const generateBtn = document.getElementById('generateBtn');
+            const loading = document.getElementById('loading');
+            const errorMessage = document.getElementById('errorMessage');
+            const successMessage = document.getElementById('successMessage');
+            const result = document.getElementById('result');
+            
+            if (!currentSessionId) {
+                errorMessage.textContent = 'Please upload files first';
+                errorMessage.style.display = 'block';
+                return;
+            }
+            
+            // Get segment times
+            const startA = parseFloat(document.getElementById('startTimeAInput').value);
+            const startB = parseFloat(document.getElementById('startTimeBInput').value);
+            
+            // Reset UI
+            errorMessage.style.display = 'none';
+            successMessage.style.display = 'none';
+            result.style.display = 'none';
+            
+            // Clear any existing audio player
+            const audioPlayer = document.getElementById('transitionPlayer');
+            if (audioPlayer) {
+                audioPlayer.pause();
+                audioPlayer.src = '';
+            }
+            
+            // Show loading
+            generateBtn.disabled = true;
+            generateBtn.textContent = 'Generating...';
+            loading.style.display = 'block';
+            
+            try {
+                const response = await fetch('/generate', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        session_id: currentSessionId,
+                        start_a: startA,
+                        start_b: startB
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    successMessage.textContent = 'New transition generated successfully! Loading audio player...';
+                    successMessage.style.display = 'block';
+                    
+                    // Setup audio player and download
+                    setupResult(data.session_id);
+                    result.style.display = 'block';
+                } else {
+                    errorMessage.textContent = data.error || 'Generation failed';
+                    errorMessage.style.display = 'block';
+                }
+            } catch (error) {
+                errorMessage.textContent = 'Network error: ' + error.message;
+                errorMessage.style.display = 'block';
+            }
+            
+            // Hide loading
+            loading.style.display = 'none';
+            generateBtn.disabled = false;
+            generateBtn.textContent = 'Generate Transition';
+        }
+
+        function setupResult(sessionId) {
+            // Setup audio player with cache busting
+            const audioPlayer = document.getElementById('transitionPlayer');
+            
+            // Stop current playback if any
+            audioPlayer.pause();
+            audioPlayer.currentTime = 0;
+            
+            // Force reload by adding timestamp to prevent caching
+            const timestamp = Date.now();
+            audioPlayer.src = `/play/${sessionId}?t=${timestamp}`;
+            
+            // Load the new audio
+            audioPlayer.load();
+            
+            // Setup download section
+            const downloadSection = document.getElementById('downloadSection');
+            downloadSection.innerHTML = `
+                <a href="/download/${sessionId}" class="download-btn">
+                    Download Transition
+                </a>
+                <button onclick="cleanupSession('${sessionId}')" class="cleanup-btn">
+                    Clean Up
+                </button>
+            `;
+        }
+
+        async function cleanupSession(sessionId) {
+            try {
+                const response = await fetch(`/cleanup/${sessionId}`, {
+                    method: 'POST'
+                });
+                
+                if (response.ok) {
+                    document.getElementById('result').style.display = 'none';
+                    document.getElementById('segmentSelection').style.display = 'none';
+                    document.getElementById('uploadForm').reset();
+                    
+                    const successMessage = document.getElementById('successMessage');
+                    successMessage.textContent = 'Session cleaned up successfully';
+                    successMessage.style.display = 'block';
+                    
+                    // Reset global variables
+                    currentSessionId = null;
+                    audioInfoA = null;
+                    audioInfoB = null;
+                    
+                    setTimeout(() => {
+                        successMessage.style.display = 'none';
+                    }, 3000);
+                }
+            } catch (error) {
+                console.error('Cleanup error:', error);
+            }
+        }
+
+        // File input styling and validation
+        const fileInputs = document.querySelectorAll('.file-input');
+        fileInputs.forEach(input => {
+            input.addEventListener('change', function() {
+                const file = this.files[0];
+                if (file) {
+                    if (file.size > 50 * 1024 * 1024) {
+                        alert('File size must be less than 50MB');
+                        this.value = '';
+                        return;
+                    }
+                    
+                    const label = this.previousElementSibling;
+                    label.textContent = label.textContent.split(':')[0] + `: ${file.name}`;
+                }
+            });
+        });
+    </script>
+</body>
+</html>
