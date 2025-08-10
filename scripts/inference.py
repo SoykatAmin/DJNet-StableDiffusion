@@ -28,7 +28,11 @@ from utils.visualization import plot_spectrograms
 
 def load_model_from_checkpoint(checkpoint_path: str, device: torch.device) -> DJNetDiffusionPipeline:
     """Load model from training checkpoint."""
-    checkpoint = torch.load(checkpoint_path, map_location=device)
+    try:
+        checkpoint = torch.load(checkpoint_path, map_location=device, weights_only=False)
+    except Exception:
+        # Fallback for older PyTorch versions
+        checkpoint = torch.load(checkpoint_path, map_location=device)
     
     # Create model
     model = DJNetUNet()
