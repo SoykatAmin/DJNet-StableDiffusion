@@ -196,6 +196,39 @@ class CrossfadeGenerator:
             print(f"Error: {error_msg}")
             return None, error_msg
     
+    def generate_hardcut_transition(self, source_a_path, source_b_path, session_id, 
+                                  start_a=0, start_b=0):
+        """Generate a hard cut transition between two audio sources"""
+        try:
+            print(f"Generating hard cut transition for session {session_id}")
+            print(f"   Source A segment: {start_a}s")
+            print(f"   Source B segment: {start_b}s")
+            
+            # Create session output directory
+            session_output_dir = Path(OUTPUT_FOLDER) / session_id
+            session_output_dir.mkdir(exist_ok=True)
+            
+            # Load audio segments
+            print("Loading audio segments...")
+            audio_a = self._load_audio_segment(source_a_path, start_a)
+            audio_b = self._load_audio_segment(source_b_path, start_b)
+            
+            # Generate hard cut
+            print("Creating hard cut...")
+            transition_audio = self._create_hardcut(audio_a, audio_b)
+            
+            # Save transition
+            transition_path = session_output_dir / "transition.wav"
+            sf.write(str(transition_path), transition_audio, self.sample_rate)
+            
+            print(f"Hard cut transition generated: {transition_path}")
+            return str(transition_path), None
+            
+        except Exception as e:
+            error_msg = f"Error generating hard cut: {str(e)}"
+            print(f"Error: {error_msg}")
+            return None, error_msg
+    
     def _load_audio_segment(self, audio_path, start_time):
         """Load a segment of audio from file"""
         # Load audio
@@ -274,6 +307,28 @@ class CrossfadeGenerator:
                 transition[fade_out_start:fade_out_start + len(b_segment)] = b_segment
         
         return transition
+    
+    def _create_hardcut(self, audio_a, audio_b):
+        """Create hard cut transition between two audio segments"""
+        # Total transition duration is 12 seconds
+        total_samples = int(self.segment_duration * self.sample_rate)
+        
+        # Hard cut at the midpoint (6 seconds)
+        cut_point = total_samples // 2
+        
+        # Create transition audio
+        transition = np.zeros(total_samples)
+        
+        # First half: audio A
+        a_segment = audio_a[:cut_point]
+        transition[:len(a_segment)] = a_segment
+        
+        # Second half: audio B
+        b_segment_length = total_samples - cut_point
+        b_segment = audio_b[:b_segment_length]
+        transition[cut_point:cut_point + len(b_segment)] = b_segment
+        
+        return transition
 class DJWebGenerator:
     """DJ Transition Generator for web interface"""
     
@@ -335,6 +390,12 @@ class DJWebGenerator:
                 # Use simple crossfade
                 crossfade_gen = CrossfadeGenerator()
                 return crossfade_gen.generate_crossfade_transition(
+                    source_a_path, source_b_path, session_id, start_a, start_b
+                )
+            elif method == "hardcut":
+                # Use hard cut
+                crossfade_gen = CrossfadeGenerator()
+                return crossfade_gen.generate_hardcut_transition(
                     source_a_path, source_b_path, session_id, start_a, start_b
                 )
             elif method == "model":
@@ -504,8 +565,8 @@ def generate_transition():
             return jsonify({'error': 'Session ID required'}), 400
         
         # Validate method
-        if method not in ['model', 'crossfade']:
-            return jsonify({'error': 'Method must be either "model" or "crossfade"'}), 400
+        if method not in ['model', 'crossfade', 'hardcut']:
+            return jsonify({'error': 'Method must be "model", "crossfade", or "hardcut"'}), 400
         
         # Check if uploaded files exist
         session_upload_dir = Path(UPLOAD_FOLDER) / session_id

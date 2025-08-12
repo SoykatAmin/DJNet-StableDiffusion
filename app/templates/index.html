@@ -153,14 +153,13 @@
         }
 
         .method-options {
-            display: flex;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
             gap: 15px;
-            flex-wrap: wrap;
         }
 
         .method-option {
-            flex: 1;
-            min-width: 200px;
+            width: 100%;
         }
 
         .method-option input[type="radio"] {
@@ -512,7 +511,7 @@
                                    {% if model_status != 'loaded' %}disabled{% endif %}
                                    {% if model_status == 'loaded' %}checked{% endif %}>
                             <label for="methodModel" {% if model_status != 'loaded' %}class="disabled-option"{% endif %}>
-                                <div class="method-title">DJNet</div>
+                                <div class="method-title">AI Model</div>
                                 <div class="method-description">
                                     {% if model_status == 'loaded' %}
                                         Advanced neural network generates sophisticated transitions
@@ -528,6 +527,13 @@
                             <label for="methodCrossfade">
                                 <div class="method-title">Simple Crossfade</div>
                                 <div class="method-description">Traditional DJ crossfade technique</div>
+                            </label>
+                        </div>
+                        <div class="method-option">
+                            <input type="radio" id="methodHardcut" name="generationMethod" value="hardcut">
+                            <label for="methodHardcut">
+                                <div class="method-title">Hard Cut</div>
+                                <div class="method-description">Abrupt transition at midpoint - no blending</div>
                             </label>
                         </div>
                     </div>
@@ -745,8 +751,10 @@
             generateBtn.disabled = true;
             if (selectedMethod === 'model') {
                 generateBtn.textContent = 'Generating with AI...';
-            } else {
+            } else if (selectedMethod === 'crossfade') {
                 generateBtn.textContent = 'Creating Crossfade...';
+            } else if (selectedMethod === 'hardcut') {
+                generateBtn.textContent = 'Creating Hard Cut...';
             }
             loading.style.display = 'block';
             
@@ -767,7 +775,14 @@
                 const data = await response.json();
                 
                 if (data.success) {
-                    const methodName = selectedMethod === 'model' ? 'AI model' : 'crossfade';
+                    let methodName;
+                    if (selectedMethod === 'model') {
+                        methodName = 'AI model';
+                    } else if (selectedMethod === 'crossfade') {
+                        methodName = 'crossfade';
+                    } else if (selectedMethod === 'hardcut') {
+                        methodName = 'hard cut';
+                    }
                     successMessage.textContent = `Transition generated successfully using ${methodName}! Loading audio player...`;
                     successMessage.style.display = 'block';
                     
