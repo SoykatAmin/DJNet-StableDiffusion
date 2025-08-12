@@ -15,6 +15,7 @@ import torch
 import torchaudio
 import librosa
 import soundfile as sf
+import numpy as np
 
 # Add parent directory to path to import our modules
 sys.path.append('../')
@@ -153,6 +154,126 @@ class ExtendedAudioProcessor(AudioProcessor):
         except Exception as e:
             print(f"Error getting audio info: {e}")
             return None
+
+class CrossfadeGenerator:
+    """Simple crossfade transition generator"""
+    
+    def __init__(self):
+        self.sample_rate = SAMPLE_RATE
+        self.segment_duration = SEGMENT_DURATION
+    
+    def generate_crossfade_transition(self, source_a_path, source_b_path, session_id, 
+                                    start_a=0, start_b=0, crossfade_duration=4.0):
+        """Generate a simple crossfade transition between two audio sources"""
+        try:
+            print(f"Generating crossfade transition for session {session_id}")
+            print(f"   Source A segment: {start_a}s")
+            print(f"   Source B segment: {start_b}s")
+            print(f"   Crossfade duration: {crossfade_duration}s")
+            
+            # Create session output directory
+            session_output_dir = Path(OUTPUT_FOLDER) / session_id
+            session_output_dir.mkdir(exist_ok=True)
+            
+            # Load audio segments
+            print("Loading audio segments...")
+            audio_a = self._load_audio_segment(source_a_path, start_a)
+            audio_b = self._load_audio_segment(source_b_path, start_b)
+            
+            # Generate crossfade
+            print("Creating crossfade...")
+            transition_audio = self._create_crossfade(audio_a, audio_b, crossfade_duration)
+            
+            # Save transition
+            transition_path = session_output_dir / "transition.wav"
+            sf.write(str(transition_path), transition_audio, self.sample_rate)
+            
+            print(f"Crossfade transition generated: {transition_path}")
+            return str(transition_path), None
+            
+        except Exception as e:
+            error_msg = f"Error generating crossfade: {str(e)}"
+            print(f"Error: {error_msg}")
+            return None, error_msg
+    
+    def _load_audio_segment(self, audio_path, start_time):
+        """Load a segment of audio from file"""
+        # Load audio
+        audio, sr = librosa.load(audio_path, sr=self.sample_rate, mono=True)
+        
+        # Calculate segment boundaries
+        start_sample = int(start_time * self.sample_rate)
+        segment_samples = int(self.segment_duration * self.sample_rate)
+        end_sample = start_sample + segment_samples
+        
+        # Extract segment
+        if start_sample >= len(audio):
+            # Start beyond audio length, return silence
+            return np.zeros(segment_samples)
+        elif end_sample > len(audio):
+            # Extract available audio and pad with silence
+            available_audio = audio[start_sample:]
+            padding_needed = segment_samples - len(available_audio)
+            return np.concatenate([available_audio, np.zeros(padding_needed)])
+        else:
+            # Extract the requested segment
+            return audio[start_sample:end_sample]
+    
+    def _create_crossfade(self, audio_a, audio_b, crossfade_duration):
+        """Create crossfade transition between two audio segments"""
+        crossfade_samples = int(crossfade_duration * self.sample_rate)
+        
+        # Total transition duration is 12 seconds
+        total_samples = int(self.segment_duration * self.sample_rate)
+        
+        # Calculate section lengths
+        fade_in_end = crossfade_samples // 2
+        fade_out_start = total_samples - (crossfade_samples // 2)
+        
+        # Create transition audio
+        transition = np.zeros(total_samples)
+        
+        # First part: audio A fading out
+        if fade_in_end > 0:
+            # Take from beginning of audio A
+            a_segment = audio_a[:fade_in_end]
+            transition[:len(a_segment)] = a_segment
+        
+        # Middle part: crossfade
+        if fade_out_start > fade_in_end:
+            crossfade_length = fade_out_start - fade_in_end
+            
+            # Get segments for crossfade
+            a_fade_start = fade_in_end
+            a_fade_end = min(a_fade_start + crossfade_length, len(audio_a))
+            a_crossfade = audio_a[a_fade_start:a_fade_end]
+            
+            b_crossfade = audio_b[:crossfade_length]
+            
+            # Ensure both segments are same length
+            min_length = min(len(a_crossfade), len(b_crossfade), crossfade_length)
+            a_crossfade = a_crossfade[:min_length]
+            b_crossfade = b_crossfade[:min_length]
+            
+            # Create fade curves
+            fade_out_curve = np.linspace(1.0, 0.0, min_length)
+            fade_in_curve = np.linspace(0.0, 1.0, min_length)
+            
+            # Apply crossfade
+            crossfaded = a_crossfade * fade_out_curve + b_crossfade * fade_in_curve
+            transition[fade_in_end:fade_in_end + len(crossfaded)] = crossfaded
+        
+        # Last part: audio B fading in
+        if fade_out_start < total_samples:
+            remaining_samples = total_samples - fade_out_start
+            b_segment_start = fade_out_start - fade_in_end + crossfade_samples // 2
+            b_segment_end = b_segment_start + remaining_samples
+            
+            if b_segment_start < len(audio_b):
+                b_segment = audio_b[b_segment_start:min(b_segment_end, len(audio_b))]
+                transition[fade_out_start:fade_out_start + len(b_segment)] = b_segment
+        
+        return transition
 class DJWebGenerator:
     """DJ Transition Generator for web interface"""
     
@@ -199,13 +320,10 @@ class DJWebGenerator:
         print(f"Model loaded successfully on {self.device}")
         return model, checkpoint
     
-    def generate_transition(self, source_a_path, source_b_path, session_id, start_a=0, start_b=0):
-        """Generate transition between two audio sources with segment selection"""
-        if not self.model_loaded:
-            return None, "Model not loaded. Please check checkpoint path."
-        
+    def generate_transition(self, source_a_path, source_b_path, session_id, start_a=0, start_b=0, method="model"):
+        """Generate transition between two audio sources with method selection"""
         try:
-            print(f"Generating transition for session {session_id}")
+            print(f"Generating transition for session {session_id} using {method}")
             print(f"   Source A segment: {start_a}s")
             print(f"   Source B segment: {start_b}s")
             
@@ -213,31 +331,44 @@ class DJWebGenerator:
             session_output_dir = Path(OUTPUT_FOLDER) / session_id
             session_output_dir.mkdir(exist_ok=True)
             
-            # Convert audio to spectrograms with segment selection
-            print("Processing audio files...")
-            source_a_spec = self.audio_processor.audio_to_spectrogram_with_offset(source_a_path, start_a)
-            source_b_spec = self.audio_processor.audio_to_spectrogram_with_offset(source_b_path, start_b)
-            
-            # Generate transition
-            print("Generating transition...")
-            transition_spec = self._generate_transition_spectrogram(source_a_spec, source_b_spec)
-            
-            # Convert back to audio
-            print("Converting to audio...")
-            transition_audio = self.audio_processor.spectrogram_to_audio(transition_spec)
-            
-            # Save transition
-            transition_path = session_output_dir / "transition.wav"
-            if hasattr(transition_audio, 'cpu'):
-                transition_audio = transition_audio.cpu()
-            if hasattr(transition_audio, 'numpy'):
-                transition_audio = transition_audio.numpy()
-            
-            import soundfile as sf
-            sf.write(str(transition_path), transition_audio, SAMPLE_RATE)
-            
-            print(f"Transition generated: {transition_path}")
-            return str(transition_path), None
+            if method == "crossfade":
+                # Use simple crossfade
+                crossfade_gen = CrossfadeGenerator()
+                return crossfade_gen.generate_crossfade_transition(
+                    source_a_path, source_b_path, session_id, start_a, start_b
+                )
+            elif method == "model":
+                # Use AI model
+                if not self.model_loaded:
+                    return None, "Model not loaded. Please check checkpoint path or use crossfade method."
+                
+                # Convert audio to spectrograms with segment selection
+                print("Processing audio files...")
+                source_a_spec = self.audio_processor.audio_to_spectrogram_with_offset(source_a_path, start_a)
+                source_b_spec = self.audio_processor.audio_to_spectrogram_with_offset(source_b_path, start_b)
+                
+                # Generate transition
+                print("Generating AI transition...")
+                transition_spec = self._generate_transition_spectrogram(source_a_spec, source_b_spec)
+                
+                # Convert back to audio
+                print("Converting to audio...")
+                transition_audio = self.audio_processor.spectrogram_to_audio(transition_spec)
+                
+                # Save transition
+                transition_path = session_output_dir / "transition.wav"
+                if hasattr(transition_audio, 'cpu'):
+                    transition_audio = transition_audio.cpu()
+                if hasattr(transition_audio, 'numpy'):
+                    transition_audio = transition_audio.numpy()
+                
+                import soundfile as sf
+                sf.write(str(transition_path), transition_audio, SAMPLE_RATE)
+                
+                print(f"AI transition generated: {transition_path}")
+                return str(transition_path), None
+            else:
+                return None, f"Unknown method: {method}"
             
         except Exception as e:
             error_msg = f"Error generating transition: {str(e)}"
@@ -361,15 +492,20 @@ def upload_files():
 
 @app.route('/generate', methods=['POST'])
 def generate_transition():
-    """Generate transition with selected segments"""
+    """Generate transition with selected segments and method"""
     try:
         data = request.json
         session_id = data.get('session_id')
         start_a = float(data.get('start_a', 0))
         start_b = float(data.get('start_b', 0))
+        method = data.get('method', 'model')  # Default to model
         
         if not session_id:
             return jsonify({'error': 'Session ID required'}), 400
+        
+        # Validate method
+        if method not in ['model', 'crossfade']:
+            return jsonify({'error': 'Method must be either "model" or "crossfade"'}), 400
         
         # Check if uploaded files exist
         session_upload_dir = Path(UPLOAD_FOLDER) / session_id
@@ -382,16 +518,17 @@ def generate_transition():
         source_a_path = str(source_a_files[0])
         source_b_path = str(source_b_files[0])
         
-        # Generate transition
-        if not generator or not generator.model_loaded:
-            return jsonify({'error': 'Model not loaded. Please check server configuration.'}), 500
+        # Generate transition with selected method
+        if method == 'model' and (not generator or not generator.model_loaded):
+            return jsonify({'error': 'AI model not loaded. Please use crossfade method or check server configuration.'}), 500
         
         transition_path, error = generator.generate_transition(
             source_a_path, 
             source_b_path, 
             session_id,
             start_a,
-            start_b
+            start_b,
+            method
         )
         
         if error:
@@ -400,7 +537,8 @@ def generate_transition():
         return jsonify({
             'success': True,
             'session_id': session_id,
-            'message': 'Transition generated successfully!'
+            'method': method,
+            'message': f'Transition generated successfully using {method}!'
         })
         
     except Exception as e:

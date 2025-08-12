@@ -138,6 +138,85 @@
             transform: none;
         }
 
+        .method-selection {
+            margin: 25px 0;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 12px;
+            border: 1px solid #e9ecef;
+        }
+
+        .method-selection h4 {
+            margin-bottom: 15px;
+            color: #4a5568;
+            font-size: 1.1em;
+        }
+
+        .method-options {
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+        }
+
+        .method-option {
+            flex: 1;
+            min-width: 200px;
+        }
+
+        .method-option input[type="radio"] {
+            display: none;
+        }
+
+        .method-option label {
+            display: block;
+            padding: 15px;
+            border: 2px solid #e2e8f0;
+            border-radius: 10px;
+            background: white;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-align: center;
+        }
+
+        .method-option label:hover {
+            border-color: #667eea;
+            background: #f7fafc;
+        }
+
+        .method-option input[type="radio"]:checked + label {
+            border-color: #667eea;
+            background: linear-gradient(135deg, rgba(102, 126, 234, 0.1) 0%, rgba(118, 75, 162, 0.1) 100%);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.15);
+        }
+
+        .method-title {
+            font-weight: bold;
+            font-size: 1.1em;
+            color: #2d3748;
+            margin-bottom: 5px;
+        }
+
+        .method-description {
+            font-size: 0.9em;
+            color: #718096;
+            line-height: 1.4;
+        }
+
+        .disabled-option {
+            opacity: 0.5;
+            cursor: not-allowed !important;
+        }
+
+        .disabled-option:hover {
+            border-color: #e2e8f0 !important;
+            background: white !important;
+        }
+
+        .method-option input[type="radio"]:disabled + label {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
         .loading {
             display: none;
             text-align: center;
@@ -364,13 +443,13 @@
             <!-- Model Status -->
             <div class="status-indicator {% if model_status == 'loaded' %}status-loaded{% else %}status-not-loaded{% endif %}">
                 <span class="status-icon">
-                    {% if model_status == 'loaded' %}Loaded{% else %}Not Loaded{% endif %}
+                    {% if model_status == 'loaded' %}✅{% else %}⚠️{% endif %}
                 </span>
                 <span>
                     {% if model_status == 'loaded' %}
-                        Model loaded and ready to generate transitions
+                        <strong>AI Model Ready</strong> - Model loaded and ready to generate AI transitions. Crossfade mode also available.
                     {% else %}
-                        Model not loaded. Please check server configuration.
+                        <strong>AI Model Not Available</strong> - Only crossfade mode available. Check server configuration for AI model.
                     {% endif %}
                 </span>
             </div>
@@ -392,9 +471,8 @@
                                accept=".wav,.mp3,.flac,.m4a,.aac" required>
                     </div>
                     
-                    <button type="submit" class="generate-btn" id="uploadBtn" 
-                            {% if model_status != 'loaded' %}disabled{% endif %}>
-                        Upload Files
+                    <button type="submit" class="generate-btn" id="uploadBtn">
+                        📤 Upload Files
                     </button>
                 </div>
             </form>
@@ -422,6 +500,36 @@
                         <input type="range" id="startTimeB" name="startTimeB" min="0" max="300" value="0" step="1">
                         <span id="startTimeBValue">0s</span>
                         <input type="number" id="startTimeBInput" min="0" step="0.1" value="0" style="width: 80px; margin-left: 10px;">
+                    </div>
+                </div>
+                
+                <!-- Method Selection -->
+                <div class="method-selection">
+                    <h4>Generation Method</h4>
+                    <div class="method-options">
+                        <div class="method-option">
+                            <input type="radio" id="methodModel" name="generationMethod" value="model" 
+                                   {% if model_status != 'loaded' %}disabled{% endif %}
+                                   {% if model_status == 'loaded' %}checked{% endif %}>
+                            <label for="methodModel" {% if model_status != 'loaded' %}class="disabled-option"{% endif %}>
+                                <div class="method-title">DJNet</div>
+                                <div class="method-description">
+                                    {% if model_status == 'loaded' %}
+                                        Advanced neural network generates sophisticated transitions
+                                    {% else %}
+                                        Model not loaded - please check server configuration
+                                    {% endif %}
+                                </div>
+                            </label>
+                        </div>
+                        <div class="method-option">
+                            <input type="radio" id="methodCrossfade" name="generationMethod" value="crossfade"
+                                   {% if model_status != 'loaded' %}checked{% endif %}>
+                            <label for="methodCrossfade">
+                                <div class="method-title">Simple Crossfade</div>
+                                <div class="method-description">Traditional DJ crossfade technique</div>
+                            </label>
+                        </div>
                     </div>
                 </div>
                 
@@ -476,7 +584,7 @@
                 <li>**Real-time Preview**: Adjust segments and regenerate transitions</li>
             </ul>
             
-            <h4 style="margin-top: 20px;">📝 Supported formats:</h4>
+            <h4 style="margin-top: 20px;">Supported formats:</h4>
             <ul>
                 <li>WAV (recommended for best quality)</li>
                 <li>MP3, FLAC, M4A, AAC</li>
@@ -618,6 +726,9 @@
             const startA = parseFloat(document.getElementById('startTimeAInput').value);
             const startB = parseFloat(document.getElementById('startTimeBInput').value);
             
+            // Get selected method
+            const selectedMethod = document.querySelector('input[name="generationMethod"]:checked').value;
+            
             // Reset UI
             errorMessage.style.display = 'none';
             successMessage.style.display = 'none';
@@ -630,9 +741,13 @@
                 audioPlayer.src = '';
             }
             
-            // Show loading
+            // Show loading with method-specific message
             generateBtn.disabled = true;
-            generateBtn.textContent = 'Generating...';
+            if (selectedMethod === 'model') {
+                generateBtn.textContent = 'Generating with AI...';
+            } else {
+                generateBtn.textContent = 'Creating Crossfade...';
+            }
             loading.style.display = 'block';
             
             try {
@@ -644,14 +759,16 @@
                     body: JSON.stringify({
                         session_id: currentSessionId,
                         start_a: startA,
-                        start_b: startB
+                        start_b: startB,
+                        method: selectedMethod
                     })
                 });
                 
                 const data = await response.json();
                 
                 if (data.success) {
-                    successMessage.textContent = 'New transition generated successfully! Loading audio player...';
+                    const methodName = selectedMethod === 'model' ? 'AI model' : 'crossfade';
+                    successMessage.textContent = `Transition generated successfully using ${methodName}! Loading audio player...`;
                     successMessage.style.display = 'block';
                     
                     // Setup audio player and download
