@@ -58,12 +58,68 @@ DJNet-StableDiffusion/
 └── README.md                      # This file
 ```
 
-## Usage
-```bash
-# Train model
-python train_model.py
+## Pre-trained Model
+Download the trained checkpoint to use the model:
+- **Checkpoint**: [Download from Google Drive](https://drive.google.com/file/d/1IahkcCsRGXk6KfS8CeJIRKkhJbpOgnoZ/view?usp=sharing)
+- Place the checkpoint in `checkpoints/` directory
 
-# Test web interface
-cd app && python app.py
+## Usage
+
+### 1. Setup Environment
+```bash
+# Clone the repository
+git clone https://github.com/SoykatAmin/DJNet-StableDiffusion.git
+cd DJNet-StableDiffusion
+
+# Install dependencies
+pip install -r requirements.txt
 ```
 
+### 2. Download Pre-trained Model
+```bash
+# Create checkpoints directory
+mkdir -p checkpoints
+
+# Download the checkpoint from Google Drive link above
+# Place it in checkpoints/ directory as: checkpoints/best_model.pt
+```
+
+### 3. Run Web Interface
+```bash
+# Start the Flask app
+cd app
+python app.py
+
+# Open browser at http://localhost:5000
+# Upload two audio files and generate transitions
+```
+
+### 4. Generate Transitions (Command Line)
+```bash
+# Test with pre-trained model
+python test_model.py
+
+# Generate batch transitions
+python generate_djnet_transitions.py
+```
+
+### 5. Evaluation
+```bash
+# Run FAD evaluation
+python evaluate_fad_experiments.py
+
+# Run rhythmic analysis
+python batch_rhythmic_analysis.py
+
+# Combined evaluation
+python combined_evaluation.py
+```
+
+### 6. Training
+```bash
+# Train your own model
+python train_model.py
+
+# Or use the universal runner
+python run.py train
+```
