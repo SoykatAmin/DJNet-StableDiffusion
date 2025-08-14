@@ -54,7 +54,9 @@ logs/
 wandb/
 
 # Data files
-data/
+data/audio_dataset.py
+data/long_segment_dataset.py
+data/synthetic_dataset.py
 *.mp3
 *.flac
 *.m4a
@@ -119,3 +121,5 @@ analyze_user_study.py
 app/outputs/*
 test/
 transition_outputs/*
+data/*
+src/data/__init__.py

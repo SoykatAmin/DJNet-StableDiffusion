@@ -472,7 +472,9 @@ def init_model():
         "../checkpoints/5k/best_model_kaggle.pt",
         "../checkpoints/5k/epoch30.pt",
         "../checkpoints/production_model_epoch_45.pt",
-        "../checkpoints_long_segments/best_model.pt"
+        "../checkpoints_long_segments/best_model.pt",
+        "../checkpoints/best_model_kaggle.pt",
+        "../checkpoints/best_model.pt",
     ]
     
     checkpoint_path = None

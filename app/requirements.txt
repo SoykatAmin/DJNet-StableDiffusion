@@ -6,3 +6,4 @@ numpy
 matplotlib
 soundfile
 pathlib
+scikit-image

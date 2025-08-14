@@ -88,6 +88,7 @@ mkdir -p checkpoints
 ```bash
 # Start the Flask app
 cd app
+pip install -r requirements.txt
 python app.py
 
 # Open browser at http://localhost:5000
@@ -98,17 +99,19 @@ python app.py
 ```bash
 # Test with pre-trained model
 python test_model.py
-
-# Generate batch transitions
-python generate_djnet_transitions.py
+# If you want to generate the transition of your choice either use the web app or upload the tracks in /test folder
 ```
 
 ### 5. Evaluation
 ```bash
 # Run FAD evaluation
+mkdir -p fad_experiments
+mkdir -p fad_experiments/djnet
+# Put the transitions in the format transition_xxxxx/source_a, transition_xxxxx/source_b, transition_xxxxx/target
 python evaluate_fad_experiments.py
 
 # Run rhythmic analysis
+# Put the dataset in fad_experiments/dataset in the format transition_xxxxx/source_a, transition_xxxxx/source_b, transition_xxxxx/target
 python batch_rhythmic_analysis.py
 
 # Combined evaluation
@@ -122,6 +125,7 @@ If you want to create the dataset used to train the model, use this repository: 
 ### 6. Training
 ```bash
 # Train your own model
+
 python train_model.py
 
 # Or use the universal runner

@@ -293,7 +293,7 @@ def main():
     print("=" * 50)
 
     # Find best checkpoint
-    checkpoint_path = "checkpoints/5k/best_model_kaggle.pt"
+    checkpoint_path = "checkpoints/best_model_kaggle.pt"
 
     if not os.path.exists(checkpoint_path):
         print(" Best model checkpoint not found!")
@@ -302,7 +302,9 @@ def main():
         alternatives = [
             "checkpoints/production_model_epoch_50.pt",
             "checkpoints/production_model_epoch_45.pt",
-            "checkpoints_long_segments/best_model.pt"
+            "checkpoints_long_segments/best_model.pt",
+            "checkpoints/best_model_kaggle.pt",
+            "checkpoints/best_model.pt",
         ]
 
         for alt_path in alternatives:
