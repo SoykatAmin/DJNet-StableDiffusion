@@ -14,3 +14,4 @@ wandb>=0.13.0
 datasets>=2.4.0
 huggingface-hub>=0.16.0
 tensorboard>=2.10.0
+scikit-image
