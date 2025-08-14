@@ -56,7 +56,6 @@ wandb/
 # Data files
 data/
 *.mp3
-*.wav
 *.flac
 *.m4a
 *.aac
@@ -116,3 +115,7 @@ dmypy.json
 fad_experiments/
 
 analyze_user_study.py
+
+app/outputs/*
+test/
+transition_outputs/*

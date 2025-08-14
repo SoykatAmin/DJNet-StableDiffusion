@@ -494,6 +494,56 @@ def index():
     model_status = "loaded" if generator and generator.model_loaded else "not_loaded"
     return render_template('index.html', model_status=model_status)
 
+@app.route('/samples')
+def samples():
+    """Sample transitions showcase page"""
+    import os
+    import librosa
+    from datetime import datetime
+    
+    # Get sample files from static/songs directory
+    songs_dir = os.path.join(app.static_folder, 'songs')
+    sample_files = []
+    
+    if os.path.exists(songs_dir):
+        for filename in os.listdir(songs_dir):
+            if filename.endswith('.wav'):
+                filepath = os.path.join(songs_dir, filename)
+                try:
+                    # Get audio duration
+                    duration_seconds = librosa.get_duration(path=filepath)
+                    duration_formatted = f"{int(duration_seconds // 60)}:{int(duration_seconds % 60):02d}"
+                    
+                    # Create sample info
+                    sample_info = {
+                        'filename': filename,
+                        'title': f"Transition Sample {filename.split()[0]}",
+                        'description': f"AI-generated transition demonstrating smooth blending between two different musical styles and tempos",
+                        'duration': duration_formatted,
+                        'format': 'WAV (22.05kHz)',
+                        'type': 'AI Generated Transition',
+                        'date': 'August 2025'
+                    }
+                    sample_files.append(sample_info)
+                except Exception as e:
+                    print(f"Error processing {filename}: {e}")
+                    # Fallback info if we can't read the file
+                    sample_info = {
+                        'filename': filename,
+                        'title': f"Transition Sample {filename.split()[0]}",
+                        'description': f"AI-generated transition demonstrating smooth blending between different musical styles",
+                        'duration': 'Unknown',
+                        'format': 'WAV',
+                        'type': 'AI Generated Transition',
+                        'date': 'August 2025'
+                    }
+                    sample_files.append(sample_info)
+    
+    # Sort samples by filename for consistent ordering
+    sample_files.sort(key=lambda x: x['filename'])
+    
+    return render_template('samples.html', samples=sample_files)
+
 @app.route('/upload', methods=['POST'])
 def upload_files():
     """Handle file upload and get audio info"""

@@ -41,6 +41,37 @@
             opacity: 0.9;
         }
 
+        .nav-buttons {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            margin-top: 20px;
+            margin-bottom: 10px;
+        }
+
+        .nav-btn {
+            background: rgba(255,255,255,0.2);
+            color: white;
+            border: 2px solid rgba(255,255,255,0.3);
+            padding: 12px 25px;
+            border-radius: 25px;
+            text-decoration: none;
+            font-weight: bold;
+            transition: all 0.3s ease;
+            backdrop-filter: blur(10px);
+        }
+
+        .nav-btn:hover {
+            background: rgba(255,255,255,0.3);
+            border-color: rgba(255,255,255,0.5);
+            transform: translateY(-2px);
+        }
+
+        .nav-btn.active {
+            background: rgba(255,255,255,0.9);
+            color: #333;
+        }
+
         .card {
             background: white;
             border-radius: 15px;
@@ -428,6 +459,17 @@
             .card {
                 padding: 20px;
             }
+            
+            .nav-buttons {
+                flex-direction: column;
+                align-items: center;
+                gap: 10px;
+            }
+            
+            .nav-btn {
+                padding: 10px 20px;
+                font-size: 0.9em;
+            }
         }
     </style>
 </head>
@@ -436,6 +478,11 @@
         <div class="header">
             <h1>DJ Transition Generator</h1>
             <p>Upload two songs and generate a smooth transition between them</p>
+            
+            <div class="nav-buttons">
+                <a href="{{ url_for('index') }}" class="nav-btn active">🏠 Generate Transitions</a>
+                <a href="{{ url_for('samples') }}" class="nav-btn">🎧 Sample Transitions</a>
+            </div>
         </div>
 
         <div class="card">
