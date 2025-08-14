@@ -284,7 +284,7 @@
                 </audio>
 
                 <div class="waveform-container">
-                    <div class="waveform-placeholder">🎵 Audio waveform visualization</div>
+                    <div class="waveform-placeholder">Audio waveform visualization</div>
                 </div>
 
                 <div class="sample-info">
@@ -296,19 +296,12 @@
                         <span class="info-label">Format:</span>
                         <span class="info-value">{{ sample.format }}</span>
                     </div>
-                    <div class="info-row">
-                        <span class="info-label">Type:</span>
-                        <span class="info-value">{{ sample.type }}</span>
-                    </div>
-                    <div class="info-row">
-                        <span class="info-label">Generated:</span>
-                        <span class="info-value">{{ sample.date }}</span>
-                    </div>
+                    
                 </div>
 
                 <div class="audio-controls">
                     <a href="{{ url_for('static', filename='songs/' + sample.filename) }}" 
-                       class="download-btn" download>⬇️ Download</a>
+                       class="download-btn" download>Download</a>
                 </div>
             </div>
             {% endfor %}
