@@ -115,6 +115,10 @@ python batch_rhythmic_analysis.py
 python combined_evaluation.py
 ```
 
+### 6. Dataset (optional)
+
+If you want to create the dataset used to train the model, use this repository: https://github.com/SoykatAmin/DJNet-Dataset
+
 ### 6. Training
 ```bash
 # Train your own model
