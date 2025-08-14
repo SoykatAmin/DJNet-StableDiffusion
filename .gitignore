@@ -114,3 +114,5 @@ coverage.xml
 dmypy.json
 
 fad_experiments/
+
+analyze_user_study.py
